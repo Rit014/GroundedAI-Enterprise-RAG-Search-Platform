@@ -1,8 +1,7 @@
 
 import { NextResponse } from "next/server";
 import { PDFParse } from "pdf-parse";
-
-// How many days of annual leave do employees receive?
+import { chunkText } from "@/app/lib/chunkText";
 
 export async function POST(request: Request) {
   let parser: PDFParse | undefined;
@@ -42,10 +41,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const chunks = chunkText(text);
+
     return NextResponse.json({
-      message: "Document read successfully!",
+      message: "Document read and chunked successfully!",
       fileName: file.name,
       content: text,
+      chunks,
+      chunkCount: chunks.length,
     });
   } catch (error) {
     console.error("Document reading error:", error);
@@ -58,4 +61,3 @@ export async function POST(request: Request) {
     await parser?.destroy();
   }
 }
-

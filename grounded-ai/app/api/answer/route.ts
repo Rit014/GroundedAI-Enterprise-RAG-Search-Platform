@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { retrieveChunks } from "@/app/lib/retrieveChunks";
 
 const MODELS = [
     "gemini-3.5-flash",
@@ -35,7 +36,7 @@ async function generateWithRetry(ai: GoogleGenAI, prompt: string) {
 
 export async function POST(request: Request) {
     try {
-        const { question, documentText } = await request.json();
+        const { question, documentText, documentChunks } = await request.json();
 
         if (!question?.trim() || !documentText?.trim()) {
             return NextResponse.json(
@@ -46,14 +47,38 @@ export async function POST(request: Request) {
 
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-        const prompt = `
-Answer the question using only the document below.
-If the answer is not in the document, say you cannot find it.
+        //         const prompt = `
+        // Answer the question using only the document below.
+        // If the answer is not in the document, say you cannot find it.
 
-Document: ${documentText}
+        // Document: ${documentText}
+        // Question: ${question}
+        // `;
+
+        const chunks = Array.isArray(documentChunks)
+            ? documentChunks
+            : [];
+
+        const relevantChunks = retrieveChunks(question, chunks);
+
+        if (relevantChunks.length === 0) {
+            return NextResponse.json({
+                answer: "I couldn't find relevant information in the uploaded document to answer this question.",
+            });
+        }
+
+        const context = relevantChunks.join("\n\n");
+
+        const prompt = `
+Answer the question using only the document context below.
+If the answer is not present in the context, say you cannot find it.
+Do not invent information.
+
+Document context:
+${context}
+
 Question: ${question}
 `;
-
         const response = await generateWithRetry(ai, prompt);
 
         return NextResponse.json({

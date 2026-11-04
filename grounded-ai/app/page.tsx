@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 export default function Home() {
   const [question, setQuestion] = useState("");
   const [documentText, setDocumentText] = useState("");
+  const [documentChunks, setDocumentChunks] = useState<string[]>([]);
   const [fileName, setFileName] = useState("");
   const [fileType, setFileType] = useState("");
   const [fileSize, setFileSize] = useState(0);
@@ -125,8 +126,9 @@ export default function Home() {
                 }
 
                 setDocumentText(result.content);
+                setDocumentChunks(result.chunks ?? []);
                 setUploadMessage(
-                  `Document ready: ${result.fileName} (${result.content.length} characters read)`
+                  `Document ready: ${result.fileName} | ${result.content.length} characters read | ${result.chunkCount} chunks created`
                 );
               } catch (err) {
                 setDocumentText("");
@@ -177,7 +179,7 @@ export default function Home() {
                 const response = await fetch("/api/answer", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ question, documentText }),
+                  body: JSON.stringify({ question, documentText, documentChunks, }),
                 });
 
                 const result = await response.json();
